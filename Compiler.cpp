@@ -21,12 +21,13 @@
 #include <fstream>
 #include <istream>
 #include <vector>
+#include <stdlib.h>
 
 #include "config.h"
 #include "language.h"
 
 
-int main(bool flag_opt){
+int main(int flag_opt, char ** aaa ){
     //open file
     const unsigned int OO = 10000;      //very big number
     std::string program;                //the program (code)
@@ -40,7 +41,7 @@ int main(bool flag_opt){
     f.close();
     program = str;
     std::cout << program << std::endl;
-
+    delete[] str;
 
     /*LEXER*/
     // Breaks the source code text into a sequence of small pieces called lexical tokens.
@@ -248,19 +249,15 @@ int main(bool flag_opt){
 
     #endif
 
-    
-
 
     /*MACHINE OPTIMIZATOR*/
     // Optimizations that depend on the details of the CPU architecture that the compiler targets.
 
 
-
     /*ASSEMBLER*/
     // Code generation: the transformed intermediate language is translated into the machine language
-
-
-
+    std::system("gcc new.s -o");
+    
 
     return 0;
 };
