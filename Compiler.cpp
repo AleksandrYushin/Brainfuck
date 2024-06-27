@@ -51,9 +51,9 @@ int main(int flag_opt, char ** aaa ){
     // ID     0   1 2 3 4 5 6 7 8  9
     // Token bogy > < + - . , [ ] loop 
 
-    for (int i=0; i>=program.length(); i++){
+    for (int i=0; i<program.length(); i++){
         simbol_program = program[i];
-        if (simbol_program == '>') 
+        if (simbol_program == '>')
             tokens.push_back(1);
         if (simbol_program == '<')
             tokens.push_back(2);
@@ -71,6 +71,8 @@ int main(int flag_opt, char ** aaa ){
             tokens.push_back(8);
     };
 
+    std::cout << "Lexer - ok"<< std::endl;
+
 
     /*PARSER*/
     // This phase builds a parse tree, which replaces the linear sequence of tokens with a tree structure (AST).
@@ -84,16 +86,19 @@ int main(int flag_opt, char ** aaa ){
     auto begin_AST = AST.cbegin();          //the interator
     AST.push_back(root);
 
-    tree_cell cell;                         //current tree cell
-    tree_cell* current_branch_root = &root; //pointer to the base of the branch
-    int blans_loop = 0;                     //syntax checking
 
-    for (int i=0; i>=tokens.size(); i++){
+    tree_cell cell;                             //current tree cell
+    tree_cell* current_branch_root = &AST[0];   //pointer to the base of the branch
+    int blans_loop = 0;                         //syntax checking
+
+
+    //!!!   !!! !!! При расширении вектора (+2^n новых мест меняется адрес начала, но не меняется указатели на мам)
+    for (int i=0; i<tokens.size(); i++){
         if (tokens[i] == 7){
             blans_loop++;
             cell = {current_branch_root, 9};
             AST.push_back(cell);
-            current_branch_root = &cell;
+            current_branch_root = &(AST.back());
         }
         else if (tokens[i] == 8){
             blans_loop--;
@@ -112,6 +117,8 @@ int main(int flag_opt, char ** aaa ){
         std::cout << txt_error_syntax;
         return 2;
     };
+
+    std::cout << "Parser - ok" << std::endl;
 
 
     /*OPTIMIZATOR*/
@@ -169,6 +176,8 @@ int main(int flag_opt, char ** aaa ){
         };
     };
 
+    std::cout << "Optimizator - ok" << std::endl;
+
 
     /*TRANSLATOR*/
     // Converting a code into a universal assembler language
@@ -181,7 +190,7 @@ int main(int flag_opt, char ** aaa ){
 
     //creating a tape
     program_asm += "tape:\n";
-    program_asm += "    .zero" + std::to_string(4*len_tape) + "\n";
+    program_asm += "    .zero   " + std::to_string(4*len_tape) + "\n";
     program_asm += "    .text\n";
     program_asm += "    .globl  main\n";
     program_asm += "    .type   main    @function\n";
@@ -192,62 +201,76 @@ int main(int flag_opt, char ** aaa ){
     program_asm += "    movl $0, %ebx\n";
     program_asm += "\n";   
 
+    // std::cout << sizeof(tree_cell)<< std::endl;
+    // for (int i=0; i<AST.size(); i++){
+    //     std::cout << &AST[i] << " " << AST[i].mom << " " << AST[i].token_ID << std::endl;
+    // };
+
     //we go through the tree and add lines
-    for (int i=1; i>=AST.size(); i++){
-        if (AST[i-1].mom != AST[i].mom && AST[i].token_ID != 9 && i>1){
+    for (int i=1; i<AST.size(); i++){
+        if (AST[i-1].mom != AST[i].mom && AST[i-1].token_ID != 9 && i>1){
             tree_cell* current_loop = AST[i-1].mom;
-            while (current_loop == AST[i].mom){
+
+            //!!! !!! из-за ошибки в парсере возникает некоректная работа этого участка
+            while (current_loop != AST[i].mom){
+                std::cout << "!" << current_loop << " " << " " << &AST[0]<< std::endl;
                 program_asm += "    jmp  loop"+std::to_string(current_loop- &AST[0])+"\n";
                 program_asm += "cont"+std::to_string(current_loop - &AST[0])+":\n";
-                current_loop = current_loop->mom;
+                current_loop = (*current_loop).mom;
             };
         };
         if (AST[i].token_ID == 1){
-            program_asm += "    cmp $"+std::to_string(len_tape)+", eax\n";
+            program_asm += "    cmpl $"+std::to_string(len_tape)+", eax\n";
             program_asm += "    jl  equal"+std::to_string(i)+"\n";
             program_asm += "    add $1, %eax\n";
             program_asm += "    jmp  cont"+std::to_string(i)+"\n";
-            program_asm += "equal"+std::to_string(i)+":  movl, $0 %eax\n";
+            program_asm += "equal"+std::to_string(i)+":  movl   $0,  %eax\n";
             program_asm += "cont"+std::to_string(i)+":\n";
         }
         else if (AST[i].token_ID == 2){
-            program_asm += "    cmp $0, eax\n";
+            program_asm += "    cmpl $0, eax\n";
             program_asm += "    jb  equal"+std::to_string(i)+"\n";
             program_asm += "    sub $1, %eax\n";
             program_asm += "    jmp  cont"+std::to_string(i)+"\n";
-            program_asm += "equal"+std::to_string(i)+":  movl$"+std::to_string(len_tape)+", $0 %eax\n";
+            program_asm += "equal"+std::to_string(i)+":  movl   $"+std::to_string(len_tape)+", %eax\n";
             program_asm += "cont"+std::to_string(i)+":\n";
         }
         else if (AST[i].token_ID == 3){
             program_asm += "    movl tape(%eax), %ebx\n";
-            program_asm += "    add $1 %ebx\n";
-            program_asm += "    movl %bx, tape(%eax)\n";
+            program_asm += "    add $1, %ebx\n";
+            program_asm += "    movl %ebx, tape(%eax)\n";
         }
         else if (AST[i].token_ID == 4){
             program_asm += "    movl tape(%eax), %ebx\n";
-            program_asm += "    sub $1 %ebx\n";
-            program_asm += "    movl %bx, tape(%eax)\n";
+            program_asm += "    sub $1, %ebx\n";
+            program_asm += "    movl %ebx, tape(%eax)\n";
         }
         else if (AST[i].token_ID == 5){
+            //!!! !!!   Найти нужнуюю операцию
             program_asm += "    movl tape(%eax), %ebx\n";
-            program_asm += "    logsl %ebx\n";
+            program_asm += "    leal %ebx\n";
         }
         else if (AST[i].token_ID == 6){
-            program_asm += "    stosl %ebx\n";
-            program_asm += "    movl %bx, tape(%eax)\n";
+            //!!! !!!   Найти нужнуюю операцию
+            program_asm += "    stos %ebx\n";
+            program_asm += "    movl %ebx, tape(%eax)\n";
         }
         else if (AST[i].token_ID == 9){
             program_asm += "loop"+std::to_string(i)+":\n";
-            program_asm += "    cmp $0, eax\n";
+            program_asm += "    cmpl $0, eax\n";
             program_asm += "    je  cont"+std::to_string(i)+"\n";
         };
     };
 
+
+    program_asm += "    ret\n"; 
     //output of assembly code
     f_s << program_asm << std::endl;
     f_s.close();
 
     #endif
+
+    std::cout << "Translator - ok" << std::endl;
 
 
     /*MACHINE OPTIMIZATOR*/
@@ -256,8 +279,9 @@ int main(int flag_opt, char ** aaa ){
 
     /*ASSEMBLER*/
     // Code generation: the transformed intermediate language is translated into the machine language
-    std::system("gcc new.s -o");
+    std::system("gcc new.s -o a.out");
     
+    std::cout << "Assembler - ok" << std::endl;
 
     return 0;
 };
