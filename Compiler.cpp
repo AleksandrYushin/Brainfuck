@@ -171,7 +171,83 @@ int main(bool flag_opt){
 
     /*TRANSLATOR*/
     // Converting a code into a universal assembler language
-    
+    #if !(defined __LP64__ || defined __LLP64__) || defined _WIN32 && !defined _WIN64
+	// we are compiling for a 32-bit system
+    #else
+    std::ofstream f_s;
+    f_s.open("new.s");
+    std::string program_asm;    //Converting a code into assembler
+
+    //creating a tape
+    program_asm += "tape:\n";
+    program_asm += "    .zero" + std::to_string(4*len_tape) + "\n";
+    program_asm += "    .text\n";
+    program_asm += "    .globl  main\n";
+    program_asm += "    .type   main    @function\n";
+
+    //rbx - battery cell values, rax - cell address
+    program_asm += "main:\n";
+    program_asm += "    movl $0, %eax\n";
+    program_asm += "    movl $0, %ebx\n";
+    program_asm += "\n";   
+
+    //we go through the tree and add lines
+    for (int i=1; i>=AST.size(); i++){
+        if (AST[i-1].mom != AST[i].mom && AST[i].token_ID != 9 && i>1){
+            tree_cell* current_loop = AST[i-1].mom;
+            while (current_loop == AST[i].mom){
+                program_asm += "    jmp  loop"+std::to_string(current_loop- &AST[0])+"\n";
+                program_asm += "cont"+std::to_string(current_loop - &AST[0])+":\n";
+                current_loop = current_loop->mom;
+            };
+        };
+        if (AST[i].token_ID == 1){
+            program_asm += "    cmp $"+std::to_string(len_tape)+", eax\n";
+            program_asm += "    jl  equal"+std::to_string(i)+"\n";
+            program_asm += "    add $1, %eax\n";
+            program_asm += "    jmp  cont"+std::to_string(i)+"\n";
+            program_asm += "equal"+std::to_string(i)+":  movl, $0 %eax\n";
+            program_asm += "cont"+std::to_string(i)+":\n";
+        }
+        else if (AST[i].token_ID == 2){
+            program_asm += "    cmp $0, eax\n";
+            program_asm += "    jb  equal"+std::to_string(i)+"\n";
+            program_asm += "    sub $1, %eax\n";
+            program_asm += "    jmp  cont"+std::to_string(i)+"\n";
+            program_asm += "equal"+std::to_string(i)+":  movl$"+std::to_string(len_tape)+", $0 %eax\n";
+            program_asm += "cont"+std::to_string(i)+":\n";
+        }
+        else if (AST[i].token_ID == 3){
+            program_asm += "    movl tape(%eax), %ebx\n";
+            program_asm += "    add $1 %ebx\n";
+            program_asm += "    movl %bx, tape(%eax)\n";
+        }
+        else if (AST[i].token_ID == 4){
+            program_asm += "    movl tape(%eax), %ebx\n";
+            program_asm += "    sub $1 %ebx\n";
+            program_asm += "    movl %bx, tape(%eax)\n";
+        }
+        else if (AST[i].token_ID == 5){
+            program_asm += "    movl tape(%eax), %ebx\n";
+            program_asm += "    logsl %ebx\n";
+        }
+        else if (AST[i].token_ID == 6){
+            program_asm += "    stosl %ebx\n";
+            program_asm += "    movl %bx, tape(%eax)\n";
+        }
+        else if (AST[i].token_ID == 9){
+            program_asm += "loop"+std::to_string(i)+":\n";
+            program_asm += "    cmp $0, eax\n";
+            program_asm += "    je  cont"+std::to_string(i)+"\n";
+        };
+    };
+
+    //output of assembly code
+    f_s << program_asm << std::endl;
+    f_s.close();
+
+    #endif
+
     
 
 
