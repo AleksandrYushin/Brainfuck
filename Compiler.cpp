@@ -84,15 +84,13 @@ int main(int flag_opt, char ** aaa ){
     tree_cell root = {NULL, 0};
     std::vector<tree_cell> AST;             //the abstract syntax tree
     auto begin_AST = AST.cbegin();          //the interator
+    AST.reserve(tokens.size());             //prevents vector redirection during expansion
     AST.push_back(root);
-
 
     tree_cell cell;                             //current tree cell
     tree_cell* current_branch_root = &AST[0];   //pointer to the base of the branch
     int blans_loop = 0;                         //syntax checking
 
-
-    //!!!   !!! !!! При расширении вектора (+2^n новых мест меняется адрес начала, но не меняется указатели на мам)
     for (int i=0; i<tokens.size(); i++){
         if (tokens[i] == 7){
             blans_loop++;
@@ -199,21 +197,13 @@ int main(int flag_opt, char ** aaa ){
     program_asm += "main:\n";
     program_asm += "    movl $0, %eax\n";
     program_asm += "    movl $0, %ebx\n";
-    program_asm += "\n";   
-
-    // std::cout << sizeof(tree_cell)<< std::endl;
-    // for (int i=0; i<AST.size(); i++){
-    //     std::cout << &AST[i] << " " << AST[i].mom << " " << AST[i].token_ID << std::endl;
-    // };
+    program_asm += "\n";
 
     //we go through the tree and add lines
     for (int i=1; i<AST.size(); i++){
         if (AST[i-1].mom != AST[i].mom && AST[i-1].token_ID != 9 && i>1){
             tree_cell* current_loop = AST[i-1].mom;
-
-            //!!! !!! из-за ошибки в парсере возникает некоректная работа этого участка
             while (current_loop != AST[i].mom){
-                std::cout << "!" << current_loop << " " << " " << &AST[0]<< std::endl;
                 program_asm += "    jmp  loop"+std::to_string(current_loop- &AST[0])+"\n";
                 program_asm += "cont"+std::to_string(current_loop - &AST[0])+":\n";
                 current_loop = (*current_loop).mom;
@@ -248,11 +238,11 @@ int main(int flag_opt, char ** aaa ){
         else if (AST[i].token_ID == 5){
             //!!! !!!   Найти нужнуюю операцию
             program_asm += "    movl tape(%eax), %ebx\n";
-            program_asm += "    leal %ebx\n";
+            program_asm += "    \\\\ %ebx\n";
         }
         else if (AST[i].token_ID == 6){
             //!!! !!!   Найти нужнуюю операцию
-            program_asm += "    stos %ebx\n";
+            program_asm += "    \\\\ %ebx\n";
             program_asm += "    movl %ebx, tape(%eax)\n";
         }
         else if (AST[i].token_ID == 9){
@@ -262,8 +252,8 @@ int main(int flag_opt, char ** aaa ){
         };
     };
 
-
     program_asm += "    ret\n"; 
+
     //output of assembly code
     f_s << program_asm << std::endl;
     f_s.close();

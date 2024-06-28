@@ -154,8 +154,8 @@ cont40:
     movl tape(%eax), %ebx
     sub $1, %ebx
     movl %ebx, tape(%eax)
-    jmp  loop-137
-cont-137:
+    jmp  loop11
+cont11:
     cmpl $30000, eax
     jl  equal42
     add $1, %eax
