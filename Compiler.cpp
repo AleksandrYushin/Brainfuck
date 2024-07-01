@@ -13,8 +13,10 @@
 //      получение кода на низкоуровневым языке
 //  Машинно-зависимая оптимизация
 //      оптимизация его с учётом архитектуры
-//  Генерация кода
-//      получение кода на машином языке 
+//  Ассемблер
+//      генерация кода на машином языке 
+//  Линкер
+//      объединение кода библеотек и программы в исполняемый файл
 
 #include <iostream>
 #include <string>
@@ -45,7 +47,6 @@ int main(int flag_opt, char ** aaa ){
 
     /*LEXER*/
     // Breaks the source code text into a sequence of small pieces called lexical tokens.
-
     std::vector<int> tokens;            //the ID tokens
     char simbol_program;                //the current simbol of the program
     // ID     0   1 2 3 4 5 6 7 8  9
@@ -76,7 +77,6 @@ int main(int flag_opt, char ** aaa ){
 
     /*PARSER*/
     // This phase builds a parse tree, which replaces the linear sequence of tokens with a tree structure (AST).
-
     struct tree_cell{
         tree_cell* mom;
         int token_ID;
@@ -121,9 +121,8 @@ int main(int flag_opt, char ** aaa ){
 
     /*OPTIMIZATOR*/
     // The intermediate language representation is transformed into functionally equivalent but faster (or smaller) forms.
-
-    int n = 1;
     if (flag_opt){
+        int n = 1;
         for (int i=1; i>=AST.size(); i++){
             if (AST[i].token_ID > 4 || AST[i].token_ID == 0){   //Select a block consisting of +-><
                 while (true){
